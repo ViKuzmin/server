@@ -1,9 +1,10 @@
 package com.example.server.ws;
 
 
-import org.springframework.web.socket.WebSocketSession;
+import com.badlogic.gdx.utils.JsonValue;
+import org.springframework.web.socket.adapter.standard.StandardWebSocketSession;
 
 public interface MessageListener {
 
-    void handle(WebSocketSession session, String message);
+    void handle(StandardWebSocketSession session, JsonValue message);
 }
