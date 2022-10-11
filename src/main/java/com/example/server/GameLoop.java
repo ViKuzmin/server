@@ -18,10 +18,12 @@ public class GameLoop extends ApplicationAdapter {
 
     private final static float frameRate = 1 / 2f;
     private final WebSocketHandler webSocketHandler;
-    private final Array<String> event = new Array<>();
     private final Json json;
-    private final ObjectMap<String, Soldier> soldiers = new ObjectMap<>();
+
     private final ForkJoinPool pool = ForkJoinPool.commonPool();
+    private final ObjectMap<String, Soldier> soldiers = new ObjectMap<>();
+    private final Array<Soldier> stateToSend = new Array<>();
+
     private float lastRender = 0;
 
     public GameLoop(WebSocketHandler webSocketHandler, Json json) {
@@ -33,33 +35,39 @@ public class GameLoop extends ApplicationAdapter {
     public void create() {
 
         webSocketHandler.setConnectListener(session -> {
-            event.add(session.getId() + " just joined");
             Soldier soldier = new Soldier();
             soldier.setId(session.getId());
             soldiers.put(session.getId(), soldier);
             try {
-                session.getNativeSession().getBasicRemote().sendText(session.getId());
+                session
+                        .getNativeSession()
+                        .getBasicRemote()
+                        .sendText(
+                                String.format("{\"class\":\"sessionKey\",\"id\":\"%s\"}", session.getId())
+                        );
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
         webSocketHandler.setDisconnectListener(session -> {
-            event.add(session.getId() + " just disconnected");
+            sendToEverybody(
+                    String.format("{\"class\":\"evict\",\"id\":\"%s\"}", session.getId())
+            );
             soldiers.remove(session.getId());
         });
 
         webSocketHandler.setMessageListener((session, message) -> {
             pool.execute(() -> {
-                String type = message.getString("type");
+                String type = message.get("type").asText();
 
                 switch (type) {
                     case "state":
                         Soldier soldier = soldiers.get(session.getId());
-                        soldier.setLeftPressed(message.getBoolean("leftPressed"));
-                        soldier.setRightPressed(message.getBoolean("rightPressed"));
-                        soldier.setUpPressed(message.getBoolean("upPressed"));
-                        soldier.setDownPressed(message.getBoolean("downPressed"));
-                        soldier.setAngle(message.getFloat("angle"));
+                        soldier.setLeftPressed(message.get("leftPressed").asBoolean());
+                        soldier.setRightPressed(message.get("rightPressed").asBoolean());
+                        soldier.setUpPressed(message.get("upPressed").asBoolean());
+                        soldier.setDownPressed(message.get("downPressed").asBoolean());
+                        soldier.setAngle((float) message.get("angle").asDouble());
 
                         break;
                     default:
@@ -67,7 +75,6 @@ public class GameLoop extends ApplicationAdapter {
                 }
 
             });
-            event.add(session.getId() + " said " + message);
         });
     }
 
@@ -76,23 +83,30 @@ public class GameLoop extends ApplicationAdapter {
         lastRender += Gdx.graphics.getDeltaTime();
         if (lastRender >= frameRate) {
 
+            stateToSend.clear();
             for (ObjectMap.Entry<String, Soldier> soldier : soldiers) {
                 Soldier soldat = soldier.value;
                 soldat.act(lastRender);
+                stateToSend.add(soldat);
             }
             lastRender = 0;
+            String stateJson = json.toJson(stateToSend);
 
-            pool.execute(() -> {
-                String stateJson = json.toJson(soldiers);
-
-                for (StandardWebSocketSession session : webSocketHandler.getSessions()) {
-                    try {
-                        session.getNativeSession().getBasicRemote().sendText(stateJson);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
+            sendToEverybody(stateJson);
         }
+    }
+
+    private void sendToEverybody(String json) {
+        pool.execute(() -> {
+            for (StandardWebSocketSession session : webSocketHandler.getSessions()) {
+                try {
+                    if (session.isOpen()) {
+                        session.getNativeSession().getBasicRemote().sendText(json);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }
