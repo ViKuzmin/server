@@ -16,7 +16,7 @@ import java.util.concurrent.ForkJoinPool;
 @Component
 public class GameLoop extends ApplicationAdapter {
 
-    private final static float frameRate = 1 / 2f;
+    private final static float frameRate = 1 / 60f;
     private final WebSocketHandler webSocketHandler;
     private final Json json;
 
