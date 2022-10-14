@@ -12,6 +12,7 @@ public class Emitter implements Json.Serializable {
     private float x;
     private float y;
     private int speed = 300;
+    private float damge = 10;
 
     @Override
     public void write(Json json) {
@@ -22,4 +23,6 @@ public class Emitter implements Json.Serializable {
     public void read(Json json, JsonValue jsonValue) {
 
     }
+
+
 }
