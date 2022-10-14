@@ -16,6 +16,7 @@ public class Soldier implements Json.Serializable{
     private boolean rightPressed;
     private boolean upPressed;
     private boolean downPressed;
+    private boolean firePressed;
 
     public void act(float delta) {
 
@@ -34,6 +35,7 @@ public class Soldier implements Json.Serializable{
         json.writeValue("y", y);
         json.writeValue("angle", angle);
         json.writeValue("id", id);
+        json.writeValue("firePressed", firePressed);
     }
 
     @Override
@@ -113,5 +115,11 @@ public class Soldier implements Json.Serializable{
         this.downPressed = downPressed;
     }
 
+    public boolean isFirePressed() {
+        return firePressed;
+    }
 
+    public void setFirePressed(boolean firePressed) {
+        this.firePressed = firePressed;
+    }
 }

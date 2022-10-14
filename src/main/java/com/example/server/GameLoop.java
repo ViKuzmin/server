@@ -67,6 +67,7 @@ public class GameLoop extends ApplicationAdapter {
                         soldier.setRightPressed(message.get("rightPressed").asBoolean());
                         soldier.setUpPressed(message.get("upPressed").asBoolean());
                         soldier.setDownPressed(message.get("downPressed").asBoolean());
+                        soldier.setFirePressed(message.get("firePressed").asBoolean());
                         soldier.setAngle((float) message.get("angle").asDouble());
 
                         break;
